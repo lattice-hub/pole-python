@@ -1,0 +1,31 @@
+name: 发布检查
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: python -m pip install --upgrade build
+      - run: PYTHONPATH=src python -m unittest discover -s tests -v
+      - run: python -m build
+      - name: 验证发布产物包含契约
+        run: |
+          for file in VERSION SHA256SUMS schema.json conformance.json; do
+            tar -tzf dist/*.tar.gz | grep "/contract/$file"
+            unzip -l dist/*.whl | grep "pole_client_contract/$file"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pole-client-python-candidate
+          path: dist/*
+          if-no-files-found: error
