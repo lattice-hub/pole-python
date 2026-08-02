@@ -79,3 +79,5 @@
 - 13 个 unittest 全部通过，隔离构建成功生成 sdist 与 wheel，`git diff --check`
   通过。
 - PyPI 当前尚无 `pole-client-python`，可用 Pending Trusted Publisher 完成首次发布。
+- 修复原 CI 只安装 `build`、未安装 `grpcio` 等项目依赖导致的五版本矩阵失败；
+  CI 与 release build 统一安装 `.[dev]`。
