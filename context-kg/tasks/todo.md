@@ -13,7 +13,7 @@
 
 - 已删除旧 `TargetEnvelope` v1 公共 API 和 `x-pole-*` 运行时实现，改为冻结的 `TargetService(namespace, service)` 与 `latticehub-target-*` 元信息。
 - 已 vendor `bootstrap.proto`、Schema、向量和校验和；`contract/VERSION` 已固定
-  specification `v0.1.0-ALPHA.39` 与不可变 commit。
+  specification `develop` 的不可变 commit `776f590d1474c51847af75b44522953874097e55`。
 - 已通过真实 gRPC UDS server-streaming 覆盖首帧完整性、重复/未知协议、端口校验、断流失效、重连恢复、启动超时及环境变量覆盖。
 - Python 3.9 运行 `unittest` 13 项、`compileall`、隔离 sdist/wheel 构建、wheel 资产检查与隔离安装导入均通过。
 

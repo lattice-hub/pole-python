@@ -6,7 +6,7 @@ listener 地址，并为业务协议注入冻结的 `TargetService v1` 元信息
 
 ## 契约来源
 
-`contract/` vendoring `specification v0.1.0-ALPHA.39` 中的 Sidecar Session v1、
+`contract/` vendoring specification `develop` 中的 Sidecar Session v1、
 `TargetService v1` Schema、向量及校验和。`contract/VERSION` 固定不可变 tag 与
 commit；正式端到端兼容组合仍以 specification 的 compatibility matrix 为准。
 
