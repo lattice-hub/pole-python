@@ -65,3 +65,17 @@
 - CI 覆盖 Python 3.9 至 3.13；未初始化 Git、提交或推送。
 - 最终审查后 wheel 与 sdist 均包含 VERSION、SHA256SUMS、Schema 和一致性向量；
   解压后的 sdist 测试通过，手动 release-check 会逐项验证四份资产。
+
+## 2026-08-03 PyPI Trusted Publishing
+
+- [x] 配置 PyPI OIDC 与 GitHub Release 工作流
+- [x] 验证版本 gate、测试与发布包
+- [x] 提交并推送发布配置
+
+### Review
+
+- GitHub Release 标签必须与 `pyproject.toml` 版本一致；构建产物通过 artifact
+  传递给独立的 PyPI OIDC publish job，不保存长期 PyPI token。
+- 13 个 unittest 全部通过，隔离构建成功生成 sdist 与 wheel，`git diff --check`
+  通过。
+- PyPI 当前尚无 `pole-client-python`，可用 Pending Trusted Publisher 完成首次发布。
