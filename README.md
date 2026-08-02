@@ -1,27 +1,25 @@
 # pole-client-python
 
-`pole-client-python` 是 Pole Sidecar 的 Python Thin SDK 核心包。它负责构造、
-校验并编码正式 `TargetEnvelope v1`，不绑定任何 HTTP 或 RPC 框架。
+`pole-client-python` 是 Pole Sidecar 的 Python Thin SDK 核心包。它不代理业务流量：
+通过本机 Unix Domain Socket 上的官方 gRPC `OpenSession` 会话接收 Sidecar 下发的
+listener 地址，并为业务协议注入冻结的 `TargetService v1` 元信息。
 
 ## 契约来源
 
-仓库 `contract/` vendoring 自
-[`lattice-hub/specification`](https://github.com/lattice-hub/specification)
-的正式 tag `thin-sdk-contract-v1.0.0`，对应完整 commit
-`f45b0396b4680fe588a93086ceb2934d3e157d04`。`contract/VERSION` 记录来源，
-`contract/SHA256SUMS` 用于验证 Schema 和一致性向量未发生漂移。
+`contract/` vendoring `specification v0.1.0-ALPHA.39` 中的 Sidecar Session v1、
+`TargetService v1` Schema、向量及校验和。`contract/VERSION` 固定不可变 tag 与
+commit；正式端到端兼容组合仍以 specification 的 compatibility matrix 为准。
 
-语言原生测试会读取并执行全部 SDK valid、invalid 与
-language-specific-invalid 向量；`sidecar_receive` 向量仅验证 vendored
-资产结构，不在 SDK 中实现 Sidecar 接收端。
-
-Pole Sidecar 尚未完成对应 listener 的端到端验证，因此当前版本只声明契约核心
-兼容，不声明 Thin SDK 到 Sidecar 已经生产就绪。
+`bootstrap.proto` 来自正式定义的
+`pole.sidecar.v1.SidecarSessionService/OpenSession`；包内 `_generated/` 是其通过官方
+`grpcio-tools 1.71.0` 生成的 Python 代码。语言原生测试执行全部 TargetService SDK
+向量，并验证 UDS server-streaming 的会话行为。
 
 ## 要求
 
 - Python 3.9 至 3.13
-- 零运行时依赖
+- `grpcio >= 1.71, < 2`
+- `protobuf >= 5.29, < 6`
 
 ## 安装
 
@@ -31,26 +29,38 @@ python -m pip install .
 
 ## 使用
 
+Sidecar 的 bootstrap socket 默认为 `/var/run/pole/sidecar/bootstrap.sock`，可仅通过
+`POLE_SIDECAR_SOCKET` 覆盖。Thin SDK 不内置、配置或猜测业务 listener 端口。
+
 ```python
-from pole_client import DEFAULT_SIDECAR_ENDPOINT, TargetEnvelope
+from pole_client import ListenerProtocol, SidecarSession, TargetService
 
-target = TargetEnvelope(
-    namespace="default",
-    service="orders",
-    protocol="grpc",
-    method="GetOrder",
-    original_endpoint="orders.internal:8080",
-)
+session = SidecarSession().start()
+try:
+    grpc_endpoint = session.endpoint(ListenerProtocol.GRPC)
+    target = TargetService(namespace="default", service="orders")
 
-headers = target.to_headers({"x-request-id": "request-1"})
+    http_headers = target.to_metadata({"traceparent": "00-..."})
+    grpc_metadata = target.to_grpc_metadata((("traceparent", "00-..."),))
+
+    # 将业务客户端连接到 grpc_endpoint，并传入 grpc_metadata。
+    # HTTP/Thrift-over-HTTP 使用 http_headers；Dubbo 使用同名 attachment。
+finally:
+    session.close()
 ```
 
-`TargetEnvelope` 按契约精确处理 Unicode scalar、Unicode 15.1
-`White_Space`、控制字符和 `original_endpoint`。`to_headers()` 会重新校验
-对象，按输入顺序保留非内部 base Header，大小写不敏感地替换 v1 内部 Header，
-并采用 canonical UTF-8 `%HH` 线路编码。
+`TargetService` 只有 `namespace` 与 `service` 两个必填字段，使用
+`latticehub-target-namespace` 和 `latticehub-target-service` 写入元信息。它精确校验
+Unicode scalar、Unicode 15.1 `White_Space`、控制字符，并以 canonical UTF-8 `%HH`
+编码值；合并时会覆盖调用方伪造的同名字段。
 
-应用仍需自行选择网络客户端并连接 Sidecar；框架 adapter 不属于当前核心包。
+`SidecarSession.start()` 在有界时间内进行指数退避连接。首帧必须包含 HTTP、gRPC、
+Dubbo、Thrift 四个不重复的合法端口；安装后 `endpoint(protocol)` 线程安全地返回
+`127.0.0.1:{port}`。UDS stream 断开时快照立即失效，后续请求必须快速失败；后台重连
+成功后原子安装新快照。核心包不持有框架连接池，adapter 应在 `listener_snapshot()` 的
+generation 改变或 `SidecarUnavailableError` 时废弃自己的旧连接池。
+
+Thrift v1 使用 Apache Thrift 官方 HTTP Transport 与标准 HTTP Header，不引入私有帧。
 
 ## 开发
 

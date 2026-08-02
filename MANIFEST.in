@@ -1,1 +1,1 @@
-recursive-include contract VERSION SHA256SUMS *.json
+recursive-include contract VERSION SHA256SUMS *.json *.proto

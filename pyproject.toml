@@ -23,7 +23,16 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Typing :: Typed",
 ]
-dependencies = []
+dependencies = [
+    "grpcio>=1.71,<2",
+    "protobuf>=5.29,<6",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "grpcio-tools>=1.71,<2",
+]
 
 [project.urls]
 Homepage = "https://github.com/lattice-hub/pole-client-python"
@@ -43,6 +52,7 @@ pole_client = ["py.typed"]
 pole_client_contract = [
     "contract/VERSION",
     "contract/SHA256SUMS",
+    "contract/bootstrap.proto",
     "contract/schema.json",
     "contract/conformance.json",
 ]

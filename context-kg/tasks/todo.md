@@ -1,5 +1,22 @@
 # Python Thin SDK
 
+## 2026-08-02 Sidecar Session v1 与 TargetService v1 迁移
+
+- [x] 审计旧 TargetEnvelope 与正式 v2 契约资产
+- [x] vendoring bootstrap.proto 与 TargetService 契约
+- [x] 实现 UDS OpenSession、快照与重连
+- [x] 迁移 TargetService 元信息 API
+- [x] 更新 README、依赖、类型信息和测试
+- [x] 运行单元、编译、构建和隔离安装验证
+
+### Review
+
+- 已删除旧 `TargetEnvelope` v1 公共 API 和 `x-pole-*` 运行时实现，改为冻结的 `TargetService(namespace, service)` 与 `latticehub-target-*` 元信息。
+- 已 vendor `bootstrap.proto`、Schema、向量和校验和；`contract/VERSION` 已固定
+  specification `v0.1.0-ALPHA.39` 与不可变 commit。
+- 已通过真实 gRPC UDS server-streaming 覆盖首帧完整性、重复/未知协议、端口校验、断流失效、重连恢复、启动超时及环境变量覆盖。
+- Python 3.9 运行 `unittest` 13 项、`compileall`、隔离 sdist/wheel 构建、wheel 资产检查与隔离安装导入均通过。
+
 - [x] 核对 Thin SDK 契约与一致性向量
 - [x] 创建 Python src-layout 工程
 - [x] 实现冻结的 `TargetEnvelope`
