@@ -9,39 +9,49 @@ from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf import runtime_version as _runtime_version
 from google.protobuf import symbol_database as _symbol_database
 from google.protobuf.internal import builder as _builder
-
 _runtime_version.ValidateProtobufRuntimeVersion(
     _runtime_version.Domain.PUBLIC,
     5,
     29,
     0,
-    "",
-    "bootstrap.proto",
+    '',
+    'bootstrap.proto'
 )
+# @@protoc_insertion_point(imports)
 
 _sym_db = _symbol_database.Default()
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(
-    b'\n\x0f\x62ootstrap.proto\x12\x0fpole.sidecar.v1"p\n\x0b\x43lientHello\x12\x14\n\x0csdk_language\x18\x01 \x01(\t\x12\x13\n\x0bsdk_version\x18\x02 \x01(\t\x12\x36\n\x13supported_protocols\x18\x03 \x03(\x0e\x32\x19.pole.sidecar.v1.Protocol"E\n\x08Listener\x12+\n\x08protocol\x18\x01 \x01(\x0e\x32\x19.pole.sidecar.v1.Protocol\x12\x0c\n\x04port\x18\x02 \x01(\r"@\n\x10ListenerSnapshot\x12,\n\tlisteners\x18\x01 \x03(\x0b\x32\x19.pole.sidecar.v1.Listener"W\n\x0cSidecarEvent\x12>\n\x11listener_snapshot\x18\x01 \x01(\x0b\x32!.pole.sidecar.v1.ListenerSnapshotH\x00\x42\x07\n\x05\x65vent*s\n\x08Protocol\x12\x18\n\x14PROTOCOL_UNSPECIFIED\x10\x00\x12\x11\n\rPROTOCOL_HTTP\x10\x01\x12\x11\n\rPROTOCOL_GRPC\x10\x02\x12\x12\n\x0ePROTOCOL_DUBBO\x10\x03\x12\x13\n\x0fPROTOCOL_THRIFT\x10\x04\x32\x65\n\x15SidecarSessionService\x12L\n\x0bOpenSession\x12\x1c.pole.sidecar.v1.ClientHello\x1a\x1d.pole.sidecar.v1.SidecarEvent0\x01\x42\x8a\x01\n6io.github.latticehub.pole.specification.api.v1.sidecarB\x15SidecarBootstrapProtoZ9github.com/pole-io/specification/source/go/api/v1/sidecarb\x06proto3'
-)
+
+
+
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x0f\x62ootstrap.proto\x12\x0fpole.sidecar.v1\"p\n\x0b\x43lientHello\x12\x14\n\x0csdk_language\x18\x01 \x01(\t\x12\x13\n\x0bsdk_version\x18\x02 \x01(\t\x12\x36\n\x13supported_protocols\x18\x03 \x03(\x0e\x32\x19.pole.sidecar.v1.Protocol\"\xe3\x01\n\x0b\x43lientEvent\x12-\n\x05hello\x18\x01 \x01(\x0b\x32\x1c.pole.sidecar.v1.ClientHelloH\x00\x12K\n\x16register_local_service\x18\x02 \x01(\x0b\x32).pole.sidecar.v1.LocalServiceRegistrationH\x00\x12O\n\x18unregister_local_service\x18\x03 \x01(\x0b\x32+.pole.sidecar.v1.LocalServiceUnregistrationH\x00\x42\x07\n\x05\x65vent\"E\n\x08Listener\x12+\n\x08protocol\x18\x01 \x01(\x0e\x32\x19.pole.sidecar.v1.Protocol\x12\x0c\n\x04port\x18\x02 \x01(\r\"@\n\x10ListenerSnapshot\x12,\n\tlisteners\x18\x01 \x03(\x0b\x32\x19.pole.sidecar.v1.Listener\"\x98\x01\n\x18LocalServiceRegistration\x12\x17\n\x0fregistration_id\x18\x01 \x01(\t\x12\x11\n\tnamespace\x18\x02 \x01(\t\x12\x0f\n\x07service\x18\x03 \x01(\t\x12+\n\x08protocol\x18\x04 \x01(\x0e\x32\x19.pole.sidecar.v1.Protocol\x12\x12\n\nlocal_port\x18\x05 \x01(\r\"5\n\x1aLocalServiceUnregistration\x12\x17\n\x0fregistration_id\x18\x01 \x01(\t\"q\n\x12LocalServiceStatus\x12\x17\n\x0fregistration_id\x18\x01 \x01(\t\x12\x31\n\x05state\x18\x02 \x01(\x0e\x32\".pole.sidecar.v1.LocalServiceState\x12\x0f\n\x07message\x18\x03 \x01(\t\"\x9c\x01\n\x0cSidecarEvent\x12>\n\x11listener_snapshot\x18\x01 \x01(\x0b\x32!.pole.sidecar.v1.ListenerSnapshotH\x00\x12\x43\n\x14local_service_status\x18\x02 \x01(\x0b\x32#.pole.sidecar.v1.LocalServiceStatusH\x00\x42\x07\n\x05\x65vent*s\n\x08Protocol\x12\x18\n\x14PROTOCOL_UNSPECIFIED\x10\x00\x12\x11\n\rPROTOCOL_HTTP\x10\x01\x12\x11\n\rPROTOCOL_GRPC\x10\x02\x12\x12\n\x0ePROTOCOL_DUBBO\x10\x03\x12\x13\n\x0fPROTOCOL_THRIFT\x10\x04*\xa4\x01\n\x11LocalServiceState\x12#\n\x1fLOCAL_SERVICE_STATE_UNSPECIFIED\x10\x00\x12\"\n\x1eLOCAL_SERVICE_STATE_REGISTERED\x10\x01\x12$\n LOCAL_SERVICE_STATE_UNREGISTERED\x10\x02\x12 \n\x1cLOCAL_SERVICE_STATE_REJECTED\x10\x03\x32\xbc\x01\n\x15SidecarSessionService\x12L\n\x0bOpenSession\x12\x1c.pole.sidecar.v1.ClientHello\x1a\x1d.pole.sidecar.v1.SidecarEvent0\x01\x12U\n\x12OpenControlSession\x12\x1c.pole.sidecar.v1.ClientEvent\x1a\x1d.pole.sidecar.v1.SidecarEvent(\x01\x30\x01\x42\x8a\x01\n6io.github.latticehub.pole.specification.api.v1.sidecarB\x15SidecarBootstrapProtoZ9github.com/pole-io/specification/source/go/api/v1/sidecarb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
-_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, "bootstrap_pb2", _globals)
+_builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'bootstrap_pb2', _globals)
 if not _descriptor._USE_C_DESCRIPTORS:
-    _globals["DESCRIPTOR"]._loaded_options = None
-    _globals["DESCRIPTOR"]._serialized_options = (
-        b"\n6io.github.latticehub.pole.specification.api.v1.sidecarB\025SidecarBootstrapProtoZ9github.com/pole-io/specification/source/go/api/v1/sidecar"
-    )
-    _globals["_PROTOCOL"]._serialized_start = 376
-    _globals["_PROTOCOL"]._serialized_end = 491
-    _globals["_CLIENTHELLO"]._serialized_start = 36
-    _globals["_CLIENTHELLO"]._serialized_end = 148
-    _globals["_LISTENER"]._serialized_start = 150
-    _globals["_LISTENER"]._serialized_end = 219
-    _globals["_LISTENERSNAPSHOT"]._serialized_start = 221
-    _globals["_LISTENERSNAPSHOT"]._serialized_end = 285
-    _globals["_SIDECAREVENT"]._serialized_start = 287
-    _globals["_SIDECAREVENT"]._serialized_end = 374
-    _globals["_SIDECARESESSIONSERVICE"]._serialized_start = 493
-    _globals["_SIDECARESESSIONSERVICE"]._serialized_end = 594
+  _globals['DESCRIPTOR']._loaded_options = None
+  _globals['DESCRIPTOR']._serialized_options = b'\n6io.github.latticehub.pole.specification.api.v1.sidecarB\025SidecarBootstrapProtoZ9github.com/pole-io/specification/source/go/api/v1/sidecar'
+  _globals['_PROTOCOL']._serialized_start=1001
+  _globals['_PROTOCOL']._serialized_end=1116
+  _globals['_LOCALSERVICESTATE']._serialized_start=1119
+  _globals['_LOCALSERVICESTATE']._serialized_end=1283
+  _globals['_CLIENTHELLO']._serialized_start=36
+  _globals['_CLIENTHELLO']._serialized_end=148
+  _globals['_CLIENTEVENT']._serialized_start=151
+  _globals['_CLIENTEVENT']._serialized_end=378
+  _globals['_LISTENER']._serialized_start=380
+  _globals['_LISTENER']._serialized_end=449
+  _globals['_LISTENERSNAPSHOT']._serialized_start=451
+  _globals['_LISTENERSNAPSHOT']._serialized_end=515
+  _globals['_LOCALSERVICEREGISTRATION']._serialized_start=518
+  _globals['_LOCALSERVICEREGISTRATION']._serialized_end=670
+  _globals['_LOCALSERVICEUNREGISTRATION']._serialized_start=672
+  _globals['_LOCALSERVICEUNREGISTRATION']._serialized_end=725
+  _globals['_LOCALSERVICESTATUS']._serialized_start=727
+  _globals['_LOCALSERVICESTATUS']._serialized_end=840
+  _globals['_SIDECAREVENT']._serialized_start=843
+  _globals['_SIDECAREVENT']._serialized_end=999
+  _globals['_SIDECARSESSIONSERVICE']._serialized_start=1286
+  _globals['_SIDECARSESSIONSERVICE']._serialized_end=1474
+# @@protoc_insertion_point(module_scope)

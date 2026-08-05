@@ -15,6 +15,7 @@ from pole_client import (
     TARGET_NAMESPACE_KEY,
     TARGET_SERVICE_KEY,
     InvalidListenerSnapshotError,
+    LocalServiceState,
     ListenerProtocol,
     SidecarInitializationError,
     SidecarSession,
@@ -43,17 +44,27 @@ def wait_until(predicate, timeout_seconds=2.0):
 
 
 class BootstrapServicer(bootstrap_pb2_grpc.SidecarSessionServiceServicer):
-    def __init__(self, event):
+    def __init__(self, event, on_client_event=None):
         self.event = event
+        self.on_client_event = on_client_event
         self.opened = False
-        self.request = None
+        self.events = []
+        self.stream_closed = False
 
-    def OpenSession(self, request, context):
-        self.opened = True
-        self.request = request
-        yield self.event
-        while context.is_active():
-            time.sleep(0.01)
+    def OpenControlSession(self, request_iterator, context):
+        try:
+            first_event = next(request_iterator)
+            self.opened = True
+            self.events.append(first_event)
+            yield self.event
+            for event in request_iterator:
+                self.events.append(event)
+                if self.on_client_event is not None:
+                    response = self.on_client_event(event)
+                    if response is not None:
+                        yield response
+        finally:
+            self.stream_closed = True
 
 
 def listener_snapshot(ports):
@@ -86,7 +97,7 @@ class ContractAssetTest(unittest.TestCase):
             (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "sidecar_session_wire_version=1\n",
+            "sidecar_session_wire_version=2\n",
             (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
         )
 
@@ -96,9 +107,12 @@ class ContractAssetTest(unittest.TestCase):
             actual = hashlib.sha256((CONTRACT_ROOT / file_name).read_bytes()).hexdigest()
             self.assertEqual(expected, actual)
 
-    def test_vendored_proto_defines_open_session(self):
+    def test_vendored_proto_defines_open_control_session(self):
         proto = (CONTRACT_ROOT / "bootstrap.proto").read_text(encoding="utf-8")
-        self.assertIn("rpc OpenSession(ClientHello) returns (stream SidecarEvent);", proto)
+        self.assertIn(
+            "rpc OpenControlSession(stream ClientEvent) returns (stream SidecarEvent);",
+            proto,
+        )
         self.assertIn("service SidecarSessionService", proto)
 
 
@@ -175,8 +189,8 @@ class SidecarSessionTest(unittest.TestCase):
             server.stop(0).wait()
         self.temporary_directory.cleanup()
 
-    def start_server(self, event):
-        servicer = BootstrapServicer(event)
+    def start_server(self, event, on_client_event=None):
+        servicer = BootstrapServicer(event, on_client_event)
         server = grpc.server(futures.ThreadPoolExecutor(max_workers=2))
         bootstrap_pb2_grpc.add_SidecarSessionServiceServicer_to_server(servicer, server)
         self.assertEqual(1, server.add_insecure_port(f"unix://{self.socket_path}"))
@@ -195,7 +209,7 @@ class SidecarSessionTest(unittest.TestCase):
         self.sessions.append(session)
         return session
 
-    def test_open_session_installs_all_protocol_endpoints(self):
+    def test_open_control_session_sends_hello_then_installs_all_protocol_endpoints(self):
         _, servicer = self.start_server(
             listener_snapshot(
                 {
@@ -209,7 +223,8 @@ class SidecarSessionTest(unittest.TestCase):
         session = self.new_session().start()
 
         wait_until(lambda: servicer.opened)
-        self.assertEqual("python", servicer.request.sdk_language)
+        self.assertEqual("hello", servicer.events[0].WhichOneof("event"))
+        self.assertEqual("python", servicer.events[0].hello.sdk_language)
         self.assertEqual(
             [
                 bootstrap_pb2.PROTOCOL_HTTP,
@@ -217,7 +232,7 @@ class SidecarSessionTest(unittest.TestCase):
                 bootstrap_pb2.PROTOCOL_DUBBO,
                 bootstrap_pb2.PROTOCOL_THRIFT,
             ],
-            list(servicer.request.supported_protocols),
+            list(servicer.events[0].hello.supported_protocols),
         )
         self.assertEqual("127.0.0.1:21001", session.endpoint("HTTP"))
         self.assertEqual("127.0.0.1:21002", session.endpoint(ListenerProtocol.GRPC))
@@ -255,6 +270,112 @@ class SidecarSessionTest(unittest.TestCase):
         wait_until(lambda: session.is_available())
         self.assertEqual("127.0.0.1:21201", session.endpoint("http"))
         self.assertEqual(2, session.listener_snapshot().generation)
+
+    def test_local_service_registration_status_replay_and_unregistration(self):
+        def first_status(event):
+            if event.WhichOneof("event") == "register_local_service":
+                return bootstrap_pb2.SidecarEvent(
+                    local_service_status=bootstrap_pb2.LocalServiceStatus(
+                        registration_id=event.register_local_service.registration_id,
+                        state=bootstrap_pb2.LOCAL_SERVICE_STATE_REGISTERED,
+                        message="registered",
+                    )
+                )
+            return None
+
+        first_server, first_servicer = self.start_server(
+            listener_snapshot(
+                {
+                    ListenerProtocol.HTTP: 21501,
+                    ListenerProtocol.GRPC: 21502,
+                    ListenerProtocol.DUBBO: 21503,
+                    ListenerProtocol.THRIFT: 21504,
+                }
+            ),
+            first_status,
+        )
+        session = self.new_session().start()
+        registration_id = session.register_local_service(
+            namespace="default",
+            service="catalog",
+            protocol=ListenerProtocol.GRPC,
+            local_port=50051,
+        )
+        wait_until(
+            lambda: session.local_service_status(registration_id)
+            and session.local_service_status(registration_id).state
+            == LocalServiceState.REGISTERED
+        )
+        self.assertEqual("hello", first_servicer.events[0].WhichOneof("event"))
+        self.assertEqual(
+            registration_id,
+            first_servicer.events[1].register_local_service.registration_id,
+        )
+
+        first_server.stop(0).wait()
+        wait_until(lambda: not session.is_available())
+
+        def replayed_status(event):
+            if event.WhichOneof("event") == "register_local_service":
+                return bootstrap_pb2.SidecarEvent(
+                    local_service_status=bootstrap_pb2.LocalServiceStatus(
+                        registration_id=event.register_local_service.registration_id,
+                        state=bootstrap_pb2.LOCAL_SERVICE_STATE_REGISTERED,
+                        message="replayed",
+                    )
+                )
+            if event.WhichOneof("event") == "unregister_local_service":
+                return bootstrap_pb2.SidecarEvent(
+                    local_service_status=bootstrap_pb2.LocalServiceStatus(
+                        registration_id=event.unregister_local_service.registration_id,
+                        state=bootstrap_pb2.LOCAL_SERVICE_STATE_UNREGISTERED,
+                        message="unregistered",
+                    )
+                )
+            return None
+
+        _, replayed_servicer = self.start_server(
+            listener_snapshot(
+                {
+                    ListenerProtocol.HTTP: 21601,
+                    ListenerProtocol.GRPC: 21602,
+                    ListenerProtocol.DUBBO: 21603,
+                    ListenerProtocol.THRIFT: 21604,
+                }
+            ),
+            replayed_status,
+        )
+        wait_until(
+            lambda: session.local_service_status(registration_id)
+            and session.local_service_status(registration_id).message == "replayed"
+        )
+        self.assertEqual("hello", replayed_servicer.events[0].WhichOneof("event"))
+        self.assertEqual(
+            registration_id,
+            replayed_servicer.events[1].register_local_service.registration_id,
+        )
+        self.assertTrue(session.unregister_local_service(registration_id))
+        wait_until(
+            lambda: session.local_service_status(registration_id)
+            and session.local_service_status(registration_id).state
+            == LocalServiceState.UNREGISTERED
+        )
+        self.assertFalse(session.unregister_local_service(registration_id))
+
+    def test_close_ends_control_session_request_stream(self):
+        _, servicer = self.start_server(
+            listener_snapshot(
+                {
+                    ListenerProtocol.HTTP: 21701,
+                    ListenerProtocol.GRPC: 21702,
+                    ListenerProtocol.DUBBO: 21703,
+                    ListenerProtocol.THRIFT: 21704,
+                }
+            )
+        )
+        session = self.new_session().start()
+        session.close()
+        wait_until(lambda: servicer.stream_closed)
 
     def test_duplicate_or_incomplete_snapshot_fails_initialization(self):
         self.start_server(

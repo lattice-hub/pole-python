@@ -1,5 +1,24 @@
 # Python Thin SDK
 
+## 2026-08-06 Sidecar Service Session v2
+
+- [x] 核对 `OpenControlSession` 双向流契约与现有会话实现
+- [x] vendor v2 proto 和生成代码
+- [x] 迁移会话、注册重放与状态处理
+- [x] 更新公开 API、README 和真实 UDS 测试
+- [x] 运行单元、编译与差异审查
+
+### Review
+
+- `bootstrap.proto`、官方生成的 Python protobuf/gRPC 代码、校验和与版本定位均固定到
+  specification `develop` 的合并提交
+  `2642bc29c0a512f4da84ec4eb862b1e1ceee9833`。
+- `OpenControlSession` 首发 `ClientHello`，首帧原子安装 listener snapshot；线程安全的
+  desired registrations 会在重连后重放，并公开注册、注销和状态查询 API。
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v`（15/15）、
+  `python3 -m compileall -q src tests` 与 `git diff --check` 均通过。当前环境缺少
+  `python -m build` 的 CLI 模块，未将其视为可用验证命令。
+
 ## 2026-08-02 Sidecar Session v1 与 TargetService v1 迁移
 
 - [x] 审计旧 TargetEnvelope 与正式 v2 契约资产
