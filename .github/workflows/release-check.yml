@@ -15,17 +15,32 @@ jobs:
         with:
           python-version: "3.13"
           cache: pip
-      - run: python -m pip install --upgrade build
-      - run: PYTHONPATH=src python -m unittest discover -s tests -v
-      - run: python -m build
+          cache-dependency-path: packages/pole-client-python/pyproject.toml
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install './packages/pole-client-python[dev]'
+      - run: >-
+          PYTHONPATH=packages/pole-client-python/src
+          python -m unittest discover -s packages/pole-client-python/tests -v
+      - run: >-
+          python -m build
+          --outdir packages/pole-client-python/dist
+          packages/pole-client-python
       - name: 验证发布产物包含契约
         run: |
           for file in VERSION SHA256SUMS schema.json conformance.json; do
-            tar -tzf dist/*.tar.gz | grep "/contract/$file"
-            unzip -l dist/*.whl | grep "pole_client_contract/$file"
+            tar -tzf packages/pole-client-python/dist/*.tar.gz | grep "/contract/$file"
+            unzip -l packages/pole-client-python/dist/*.whl | grep "pole_client_contract/$file"
           done
+          for file in README.md SHA256SUMS schema.json conformance.json; do
+            tar -tzf packages/pole-client-python/dist/*.tar.gz | grep "/contract/traffic-context/v1/$file"
+            unzip -l packages/pole-client-python/dist/*.whl | grep "pole_client_contract/traffic-context/v1/$file"
+          done
+          if unzip -l packages/pole-client-python/dist/*.whl | grep -E '(^|/)(sitecustomize|usercustomize)\.py$'; then
+            echo "兼容客户端 wheel 不得包含自动启动模块"
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: pole-client-python-candidate
-          path: dist/*
+          path: packages/pole-client-python/dist/*
           if-no-files-found: error

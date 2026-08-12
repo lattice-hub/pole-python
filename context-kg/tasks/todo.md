@@ -1,4 +1,46 @@
+---
+title: Python Thin SDK
+tags: [tasks, python, thin-sdk]
+links: [pole-python-monorepo]
+updated: 2026-08-12
+sources: 0
+---
+
 # Python Thin SDK
+
+## 2026-08-12 pole-python 轻量 Monorepo 迁移
+
+- [x] 核对工作区、远端、发布流水线和硬编码路径
+- [x] 将兼容客户端移动到 `packages/pole-client-python/`
+- [x] 更新仓库元数据、CI、发布与开发命令
+- [x] 保持 `pole-client-python` distribution 与 `pole_client` import 不变
+- [x] 明确不引入 `sitecustomize`、自动 instrumentation 或框架 monkey patch
+- [x] 运行测试、构建、安装、契约、CodeGraph 与差异验证
+- [ ] 提交并完成 GitHub/本地仓库重命名和远端交付
+
+### 迁移约束
+
+- 仓库产品边界改名为 `pole-python`，但本次只迁移现有客户端发行包，不创建空的
+  instrumentation package。
+- PyPI 项目名、Python import、公共接口、版本和契约语义保持兼容；monorepo 目录变化不得
+  泄漏到 wheel/sdist 的运行时接口。
+- Q3 自动增强明确延期；核心包不得增加顶层 `sitecustomize.py`、`.pth`、启动器或隐式 patch。
+
+### Review
+
+- GitHub 仓库和本地目录已分别改名为 `lattice-hub/pole-python` 与 `pole-python`；客户端完整
+  迁入 `packages/pole-client-python/`，根目录使用 UV workspace 元数据承载 monorepo 成员。
+- PyPI distribution 仍为 `pole-client-python`，源码 import 仍为 `pole_client`，
+  `importlib.metadata.version("pole-client-python")` 和全部公共导出未改变。独立虚拟环境从新 wheel
+  安装后导入与版本读取通过。
+- 24 项 unittest、`compileall`、两组契约 SHA256、隔离 sdist/wheel 构建和产物内容检查通过；
+  wheel 包含许可证、`pole_client` 和全部契约资产，且不包含 `sitecustomize.py`、
+  `usercustomize.py` 或 `.pth`。
+- CodeGraph 迁移后同步完成：12 文件、213 节点、597 条边；`SidecarSession`、
+  `TargetService`、`TrafficContext` 的公共入口与测试关系保持完整。Context-KG lint、workflow YAML
+  解析和 `git diff --check` 通过。
+- 仓库改名改变了 PyPI Trusted Publisher 的 GitHub OIDC subject；首次发布前仍需在 PyPI 将
+  repository 更新为 `lattice-hub/pole-python`，本次未触发真实发布。
 
 ## 2026-08-12 TrafficContext 发布边界审查
 
@@ -165,3 +207,7 @@
 - PyPI 当前尚无 `pole-client-python`，可用 Pending Trusted Publisher 完成首次发布。
 - 修复原 CI 只安装 `build`、未安装 `grpcio` 等项目依赖导致的五版本矩阵失败；
   CI 与 release build 统一安装 `.[dev]`。
+
+## 相关页面
+
+- [[pole-python-monorepo]]

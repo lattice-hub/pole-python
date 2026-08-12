@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pole-client-python"
+version = "0.1.0"
+description = "Framework-independent Python Thin SDK for Pole Sidecar"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
+authors = [
+    { name = "Pole Mesh" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Typing :: Typed",
+]
+dependencies = [
+    "grpcio>=1.71,<2",
+    "protobuf>=5.29,<6",
+]
+
+[project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.0,<2",
+]
+dev = [
+    "build>=1.2",
+    "grpcio-tools>=1.71,<2",
+    "opentelemetry-api>=1.0,<2",
+]
+
+[project.urls]
+Homepage = "https://github.com/lattice-hub/pole-python"
+Repository = "https://github.com/lattice-hub/pole-python/tree/develop/packages/pole-client-python"
+Issues = "https://github.com/lattice-hub/pole-python/issues"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+pole_client = ["py.typed"]
+
+[tool.setuptools.data-files]
+"pole_client_contract" = [
+    "contract/VERSION",
+    "contract/SHA256SUMS",
+    "contract/bootstrap.proto",
+    "contract/schema.json",
+    "contract/conformance.json",
+]
+"pole_client_contract/traffic-context/v1" = [
+    "contract/traffic-context/v1/README.md",
+    "contract/traffic-context/v1/schema.json",
+    "contract/traffic-context/v1/conformance.json",
+    "contract/traffic-context/v1/SHA256SUMS",
+]
