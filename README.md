@@ -61,6 +61,16 @@ finally:
 Unicode scalar、Unicode 15.1 `White_Space`、控制字符，并以 canonical UTF-8 `%HH`
 编码值；合并时会覆盖调用方伪造的同名字段。
 
+`TrafficContext(campaign=None, lane=None, bucket=None)` 通过同一出站元信息装配点写入
+W3C `baggage`。`attach_traffic_context(context)` 使用 `contextvars` 安装可嵌套 scope，
+`current_traffic_context()` 在未安装时返回 `None`。安装 `.[otel]` 后可调用
+`install_opentelemetry_context_adapter()` 切换到真实 OTel Context/Baggage，标准 W3C Baggage
+Propagator 可直接发送 version、campaign、lane、bucket，领域值缺失时会从合法 OTel Baggage
+恢复。不存在 OTel 时核心 SDK 仍可正常加载并使用 `contextvars`。
+`TargetService.to_metadata(..., traffic_context=explicit)` 的显式参数优先，否则读取 current；
+它覆盖 TargetService 内部键、保留外部 Baggage，并清理旧保留键。
+`traceparent` 不是灰度关联键。自动 HTTP/gRPC/Dubbo/Thrift 框架入口 hook 不属于本次范围。
+
 `SidecarSession.start()` 在有界时间内进行指数退避连接。第一个客户端事件固定为
 `ClientHello`，首个服务端事件必须包含 HTTP、gRPC、
 Dubbo、Thrift 四个不重复的合法端口；安装后 `endpoint(protocol)` 线程安全地返回

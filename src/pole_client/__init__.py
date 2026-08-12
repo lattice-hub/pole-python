@@ -19,6 +19,22 @@ from .target_service import (
     TargetService,
     TargetServiceError,
 )
+from .traffic_context import (
+    BAGGAGE_KEY,
+    TRAFFIC_BUCKET_KEY,
+    TRAFFIC_CAMPAIGN_KEY,
+    TRAFFIC_LANE_KEY,
+    TRAFFIC_VERSION_KEY,
+    TrafficContext,
+    TrafficContextError,
+    TrafficContextScope,
+    attach_traffic_context,
+    current_traffic_context,
+    extract_traffic_context,
+    inject_baggage,
+    install_opentelemetry_context_adapter,
+    use_native_context_storage,
+)
 
 __all__ = [
     "DEFAULT_SIDECAR_SOCKET",
@@ -38,4 +54,18 @@ __all__ = [
     "TARGET_SERVICE_KEY",
     "TargetService",
     "TargetServiceError",
+    "BAGGAGE_KEY",
+    "TRAFFIC_BUCKET_KEY",
+    "TRAFFIC_CAMPAIGN_KEY",
+    "TRAFFIC_LANE_KEY",
+    "TRAFFIC_VERSION_KEY",
+    "TrafficContext",
+    "TrafficContextError",
+    "TrafficContextScope",
+    "attach_traffic_context",
+    "current_traffic_context",
+    "extract_traffic_context",
+    "inject_baggage",
+    "install_opentelemetry_context_adapter",
+    "use_native_context_storage",
 ]

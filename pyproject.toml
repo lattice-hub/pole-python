@@ -29,9 +29,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+otel = [
+    "opentelemetry-api>=1.0,<2",
+]
 dev = [
     "build>=1.2",
     "grpcio-tools>=1.71,<2",
+    "opentelemetry-api>=1.0,<2",
 ]
 
 [project.urls]
@@ -49,10 +53,16 @@ where = ["src"]
 pole_client = ["py.typed"]
 
 [tool.setuptools.data-files]
-pole_client_contract = [
+"pole_client_contract" = [
     "contract/VERSION",
     "contract/SHA256SUMS",
     "contract/bootstrap.proto",
     "contract/schema.json",
     "contract/conformance.json",
+]
+"pole_client_contract/traffic-context/v1" = [
+    "contract/traffic-context/v1/README.md",
+    "contract/traffic-context/v1/schema.json",
+    "contract/traffic-context/v1/conformance.json",
+    "contract/traffic-context/v1/SHA256SUMS",
 ]

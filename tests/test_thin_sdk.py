@@ -1,4 +1,5 @@
 import hashlib
+import sys
 import json
 from concurrent import futures
 from dataclasses import FrozenInstanceError
@@ -22,7 +23,15 @@ from pole_client import (
     SidecarUnavailableError,
     TargetService,
     TargetServiceError,
+    TrafficContext,
+    TrafficContextError,
+    attach_traffic_context,
+    current_traffic_context,
+    extract_traffic_context,
+    inject_baggage,
+    install_opentelemetry_context_adapter,
     resolve_sidecar_socket,
+    use_native_context_storage,
 )
 from pole_client._generated import bootstrap_pb2, bootstrap_pb2_grpc
 
@@ -97,7 +106,15 @@ class ContractAssetTest(unittest.TestCase):
             (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
         )
         self.assertIn(
-            "sidecar_session_wire_version=2\n",
+            "sidecar_session_wire_version=1\n",
+            (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "traffic_context_wire_version=1\n",
+            (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
+        )
+        self.assertIn(
+            "traffic_context_contract_version=1.0.0\n",
             (CONTRACT_ROOT / "VERSION").read_text(encoding="utf-8"),
         )
 
@@ -173,6 +190,211 @@ class TargetServiceConformanceTest(unittest.TestCase):
         with self.assertRaises(TargetServiceError) as caught:
             target.to_metadata()
         self.assertEqual("INVALID_UNICODE_SCALAR", caught.exception.diagnostic)
+
+
+class TrafficContextTest(unittest.TestCase):
+    def test_contract_assets_and_checksums(self):
+        root = CONTRACT_ROOT / "traffic-context" / "v1"
+        conformance = json.loads((root / "conformance.json").read_text(encoding="utf-8"))
+        self.assertEqual("latticehub-traffic-context", conformance["contract"])
+        for line in (root / "SHA256SUMS").read_text(encoding="utf-8").strip().splitlines():
+            expected, file_name = line.split()
+            self.assertEqual(expected, hashlib.sha256((root / file_name).read_bytes()).hexdigest())
+        root_checksums = dict(
+            reversed(line.split(maxsplit=1))
+            for line in (CONTRACT_ROOT / "SHA256SUMS").read_text(encoding="utf-8").splitlines()
+        )
+        for file_name in ("README.md", "schema.json", "conformance.json", "SHA256SUMS"):
+            path = root / file_name
+            self.assertEqual(
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+                root_checksums[f"traffic-context/v1/{file_name}"],
+            )
+
+    def test_scope_restores_context_and_target_service_uses_current_context(self):
+        self.assertIsNone(current_traffic_context())
+        current = TrafficContext(campaign="checkout-v2", lane="gray", bucket=42)
+        with attach_traffic_context(current):
+            self.assertEqual(current, current_traffic_context())
+            metadata = TargetService("default", "orders").to_grpc_metadata(
+                (("baggage", "vendor=value"),)
+            )
+        self.assertIsNone(current_traffic_context())
+        self.assertEqual(
+            "vendor=value,latticehub.traffic.version=1,latticehub.traffic.campaign=checkout-v2,"
+            "latticehub.traffic.lane=gray,latticehub.traffic.bucket=42",
+            dict(metadata)["baggage"],
+        )
+
+    def test_optional_opentelemetry_adapter_never_blocks_native_storage(self):
+        native = TrafficContext(lane="native")
+        use_native_context_storage()
+        with attach_traffic_context(native):
+            self.assertEqual(native, current_traffic_context())
+        if install_opentelemetry_context_adapter():
+            otel = TrafficContext(lane="otel")
+            with attach_traffic_context(otel):
+                self.assertEqual(otel, current_traffic_context())
+        use_native_context_storage()
+
+    def test_optional_opentelemetry_adapter_writes_and_recovers_baggage(self):
+        from opentelemetry import baggage, context as otel_context
+        from opentelemetry.baggage.propagation import W3CBaggagePropagator
+
+        traffic_context = TrafficContext(campaign="checkout-v2", lane="gray", bucket=42)
+        self.assertTrue(install_opentelemetry_context_adapter())
+        try:
+            seeded = baggage.set_baggage("vendor.key", "preserved")
+            seeded = baggage.set_baggage("latticehub.traffic.future", "stale", context=seeded)
+            seeded = baggage.set_baggage("latticehub.traffic.lane", "stale", context=seeded)
+            seed_token = otel_context.attach(seeded)
+            try:
+                with attach_traffic_context(traffic_context):
+                    self.assertEqual(traffic_context, current_traffic_context())
+                    self.assertEqual("preserved", baggage.get_baggage("vendor.key"))
+                    self.assertIsNone(baggage.get_baggage("latticehub.traffic.future"))
+                    self.assertEqual("1", baggage.get_baggage("latticehub.traffic.version"))
+                    self.assertEqual("checkout-v2", baggage.get_baggage("latticehub.traffic.campaign"))
+                    self.assertEqual("gray", baggage.get_baggage("latticehub.traffic.lane"))
+                    self.assertEqual("42", baggage.get_baggage("latticehub.traffic.bucket"))
+                    carrier = {}
+                    W3CBaggagePropagator().inject(carrier, context=otel_context.get_current())
+                    self.assertEqual(
+                        traffic_context,
+                        extract_traffic_context([carrier["baggage"]]),
+                    )
+            finally:
+                otel_context.detach(seed_token)
+
+            recovered = baggage.set_baggage("latticehub.traffic.version", "1")
+            recovered = baggage.set_baggage("latticehub.traffic.lane", "recovered", context=recovered)
+            token = otel_context.attach(recovered)
+            try:
+                self.assertEqual(TrafficContext(lane="recovered"), current_traffic_context())
+            finally:
+                otel_context.detach(token)
+
+            invalid = baggage.set_baggage("latticehub.traffic.lane", "missing-version")
+            token = otel_context.attach(invalid)
+            try:
+                self.assertIsNone(current_traffic_context())
+            finally:
+                otel_context.detach(token)
+
+            unknown_reserved = baggage.set_baggage("latticehub.traffic.version", "1")
+            unknown_reserved = baggage.set_baggage(
+                "latticehub.traffic.lane", "gray", context=unknown_reserved
+            )
+            unknown_reserved = baggage.set_baggage(
+                "latticehub.traffic.future", "unknown", context=unknown_reserved
+            )
+            token = otel_context.attach(unknown_reserved)
+            try:
+                self.assertIsNone(current_traffic_context())
+            finally:
+                otel_context.detach(token)
+        finally:
+            use_native_context_storage()
+
+    def test_missing_opentelemetry_does_not_block_native_context_storage(self):
+        use_native_context_storage()
+        with patch.dict(sys.modules, {"opentelemetry": None}):
+            self.assertFalse(install_opentelemetry_context_adapter())
+        with attach_traffic_context(TrafficContext(lane="native")):
+            self.assertEqual(TrafficContext(lane="native"), current_traffic_context())
+
+    def test_explicit_context_overrides_current_and_preserves_foreign_baggage(self):
+        current = TrafficContext(lane="gray")
+        explicit = TrafficContext(campaign="checkout-v3")
+        with attach_traffic_context(current):
+            metadata = TargetService("default", "orders").to_metadata(
+                {
+                    "Baggage": "vendor=value;property=one,latticehub.traffic.lane=forged",
+                    TARGET_SERVICE_KEY: "forged",
+                },
+                traffic_context=explicit,
+            )
+        self.assertEqual(
+            "vendor=value;property=one,latticehub.traffic.version=1,"
+            "latticehub.traffic.campaign=checkout-v3",
+            metadata["baggage"],
+        )
+        self.assertEqual("orders", metadata[TARGET_SERVICE_KEY])
+
+    def test_baggage_vectors_and_rejection_rules(self):
+        root = CONTRACT_ROOT / "traffic-context" / "v1"
+        conformance = json.loads((root / "conformance.json").read_text(encoding="utf-8"))
+        for vector in conformance["valid"]:
+            with self.subTest(vector=vector["name"]):
+                context = TrafficContext(**vector["input"]["labels"])
+                self.assertEqual(
+                    vector["expected_baggage"],
+                    inject_baggage(vector["existing_baggage"], context),
+                )
+        for vector in conformance["sidecar_receive"]["valid"]:
+            with self.subTest(vector=vector["name"]):
+                expected = TrafficContext(**vector["expected"]["labels"])
+                self.assertEqual(expected, extract_traffic_context(vector["baggage"]))
+        for vector in conformance["sidecar_receive"]["invalid"]:
+            with self.subTest(vector=vector["name"]):
+                with self.assertRaises(TrafficContextError) as caught:
+                    extract_traffic_context(vector["baggage"])
+                self.assertEqual(vector["diagnostic"], caught.exception.diagnostic)
+
+        self.assertIsNone(inject_baggage(["latticehub.traffic.lane=stale"], None))
+        with self.assertRaises(TrafficContextError):
+            extract_traffic_context(["latticehub.traffic.version=1;l=1,latticehub.traffic.lane=gray"])
+        with self.assertRaises(TrafficContextError):
+            extract_traffic_context(["latticehub.traffic.version=1;,latticehub.traffic.lane=gray"])
+        with self.assertRaises(TrafficContextError):
+            extract_traffic_context(["latticehub.traffic.version=1,latticehub.traffic.unknown=x"])
+        with self.assertRaises(TrafficContextError):
+            extract_traffic_context(["latticehub.traffic.version=1,latticehub.traffic.lane=%e7%81%b0"])
+        with self.assertRaises(TrafficContextError):
+            TrafficContext(lane=" gray")
+
+    def test_w3c_ows_empty_external_value_and_properties_are_preserved(self):
+        extracted = extract_traffic_context(
+            [
+                " \tlatticehub.traffic.version \t=\t 1\t ,\t"
+                "latticehub.traffic.lane\t=\tgray \t",
+            ]
+        )
+        self.assertEqual(TrafficContext(lane="gray"), extracted)
+        baggage = inject_baggage(
+            [" \tvendor \t=\t \t;\tflag\t;\tproperty \t=\tvalue\t ", "\tempty=\t"],
+            TrafficContext(lane="gray"),
+        )
+        self.assertEqual(
+            "vendor \t=\t \t;\tflag\t;\tproperty \t=\tvalue,empty=,"
+            "latticehub.traffic.version=1,latticehub.traffic.lane=gray",
+            baggage,
+        )
+
+    def test_external_members_are_validated_and_input_limit_is_shared(self):
+        invalid = (
+            "bad key=value",
+            'vendor="quoted"',
+            "vendor=has space",
+            "vendor=value;bad key=x",
+            "vendor=value;property=has space",
+        )
+        for value in invalid:
+            with self.subTest(value=value):
+                with self.assertRaises(TrafficContextError):
+                    extract_traffic_context([value])
+                with self.assertRaises(TrafficContextError):
+                    inject_baggage([value], TrafficContext())
+
+        values = ["a=" + "x" * 4094, "b=" + "x" * 4093]
+        self.assertEqual(8192, len(",".join(values).encode("ascii")))
+        self.assertIsNone(extract_traffic_context(values))
+        self.assertEqual(",".join(values), inject_baggage(values, TrafficContext()))
+        too_large = [values[0], values[1] + "x"]
+        with self.assertRaises(TrafficContextError):
+            extract_traffic_context(too_large)
+        with self.assertRaises(TrafficContextError):
+            inject_baggage(too_large, TrafficContext())
 
 
 class SidecarSessionTest(unittest.TestCase):

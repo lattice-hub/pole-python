@@ -1,5 +1,70 @@
 # Python Thin SDK
 
+## 2026-08-12 TrafficContext 发布边界审查
+
+- [x] 读取完整未提交 diff、`pyproject.toml` 与现有任务记录
+- [x] 比对 Sidecar/Go vendored TrafficContext v1 资产和来源状态
+- [x] 补齐版本定位、根校验和、打包资产与回归断言
+- [x] 运行单元、编译、构建、差异与知识库检查
+- [x] 记录验证结果与剩余发布风险
+
+### Review
+
+- `contract/VERSION` 现在同时记录 Sidecar Session、TargetService、TrafficContext 的
+  wire version；根据 specification `thin-sdk/README.md`、冻结 `bootstrap.proto` 及 Go/
+  Sidecar 版本记录，Sidecar Session 的正确 wire version 为 `1`，不是此前遗留的 `2`。
+  TrafficContext 资产已逐字节比对 specification commit
+  `67b101bb6e3906b4337affefd33ef778cec692b3` 的 `thin-sdk/traffic-context/v1/`。
+- 根 `contract/SHA256SUMS` 覆盖四份 TrafficContext 资产；测试同时校验根与子目录
+  校验和。`pyproject.toml` 把它们安装到保留嵌套路径
+  `pole_client_contract/traffic-context/v1/`，避免同名 JSON 与 TargetService 资产冲突。
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v`（24 项）、
+  `python3 -m compileall -q src tests`、`git diff --check` 通过；`uv build` 通过，并实际
+  检查 wheel 包含四份 TrafficContext 资产与根 VERSION/SHA256SUMS。
+- `context_kg_lint.py ./context-kg` 仍失败：仓库仅有旧式 `tasks/todo.md`、`lessons.md`，
+  缺少 frontmatter 和 `_meta/index.md`。这是既有知识库结构与通用 lint 的不兼容，未在本次
+  SDK 交付中重构。
+
+## 2026-08-06 Baggage Parser Conformance Repair
+
+- [x] 核对 W3C OWS 与 baggage ABNF 边界
+- [x] 添加外部 member、OWS 与长度合并测试
+- [x] 修复 parser、保留 raw 与注入语义
+- [x] 运行全量测试、编译与差异检查
+
+### Review
+
+- parser 现在按 W3C Baggage ABNF 处理 member、key、value 和 property 的 SP/HTAB OWS；
+  外层 OWS 不进入保留 raw，外部空 value 与合法 properties 保持原格式后继续注入。
+- 所有外部成员都校验 RFC token 与 baggage-octet；多 header 输入按逗号合并计算并统一
+  限制 8192 bytes，extract 与 inject 共享实现。
+- `PYTHONPATH=src python3 -m unittest discover -s tests -v`（22 项）、
+  `python3 -m compileall -q src tests` 与 `git diff --check` 均通过。
+
+## 2026-08-06 TrafficContext v1
+
+- [x] 核对当前 TrafficContext v1 契约与 TargetService 装配点
+- [x] 添加 Baggage、上下文 scope 与元信息接线测试
+- [x] 实现 contextvars 与可选 OpenTelemetry storage adapter
+- [x] 实现规范 Baggage 编解码并接入 TargetService
+- [x] vendor 契约资产、更新 README 并完成全量验证
+
+### Review
+
+- `TrafficContext` 默认通过 `contextvars` scope 存储；可选 OTel adapter 只在显式安装时导入，
+  同时读写 OTel Context/Baggage，领域值缺失时从合法 Baggage 恢复，不影响核心包缺少 OTel 时加载。
+  TargetService 通过统一元信息路径同时写入内部 TargetService 键和可继续下游传播的 `baggage`。
+- 已逐字节 vendor 当前 specification 的 TrafficContext v1 四份资产，并覆盖 canonical
+  编解码、保留成员清理、外部 Baggage 保留、scope reset 和显式上下文优先级。
+- 已同步新增 `empty_context_cleans_reserved_prefix` 的 conformance 与更新后的 SHA；新增真实
+  OTel W3C Baggage Propagator inject/recover 以及无 OTel core loading 回归，并提供 `.[otel]` extra。
+- OTel attach 现在枚举并删除全部精确小写 `latticehub.traffic.*`，恢复时遇到未知保留键返回空；
+  原生测试逐项执行 vendored `valid`、`sidecar_receive.valid` 与 `sidecar_receive.invalid`，
+  invalid 向量逐项校验 diagnostic。
+- 通过 `PYTHONPATH=src python3 -m unittest discover -s tests -v`（24 项）、
+  `python3 -m compileall -q src tests`、四项资产逐字比对与 `git diff --check`。环境没有可执行的
+  `python3 -m build` 模块，构建包验证未执行。
+
 ## 2026-08-06 Sidecar Service Session v2
 
 - [x] 核对 `OpenControlSession` 双向流契约与现有会话实现

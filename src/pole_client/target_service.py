@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from typing import Dict, Iterable, Mapping, Optional, Tuple
 import unicodedata
 
+from .traffic_context import TrafficContext, inject_metadata
+
 
 TARGET_NAMESPACE_KEY = "latticehub-target-namespace"
 TARGET_SERVICE_KEY = "latticehub-target-service"
@@ -72,7 +74,7 @@ def _encode_metadata_value(value: str) -> str:
 
 
 def _merge_metadata(
-    items: Iterable[Tuple[str, str]], target: "TargetService"
+    items: Iterable[Tuple[str, str]], target: "TargetService", traffic_context: Optional[TrafficContext]
 ) -> Tuple[Tuple[str, str], ...]:
     retained = []
     for name, value in items:
@@ -86,7 +88,7 @@ def _merge_metadata(
             (TARGET_SERVICE_KEY, _encode_metadata_value(target.service)),
         )
     )
-    return tuple(retained)
+    return inject_metadata(retained, traffic_context)
 
 
 @dataclass(frozen=True)
@@ -99,13 +101,13 @@ class TargetService:
         object.__setattr__(self, "service", _normalize(self.service, "service"))
 
     def to_metadata(
-        self, metadata: Optional[Mapping[str, str]] = None
+        self, metadata: Optional[Mapping[str, str]] = None, *, traffic_context: Optional[TrafficContext] = None
     ) -> Dict[str, str]:
         validated = TargetService(self.namespace, self.service)
-        return dict(_merge_metadata((metadata or {}).items(), validated))
+        return dict(_merge_metadata((metadata or {}).items(), validated, traffic_context))
 
     def to_grpc_metadata(
-        self, metadata: Iterable[Tuple[str, str]] = ()
+        self, metadata: Iterable[Tuple[str, str]] = (), *, traffic_context: Optional[TrafficContext] = None
     ) -> Tuple[Tuple[str, str], ...]:
         validated = TargetService(self.namespace, self.service)
-        return _merge_metadata(metadata, validated)
+        return _merge_metadata(metadata, validated, traffic_context)
