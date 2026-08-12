@@ -41,8 +41,9 @@ sources: 0
   解析和 `git diff --check` 通过。
 - 仓库改名改变了 PyPI Trusted Publisher 的 GitHub OIDC subject；首次发布前仍需在 PyPI 将
   repository 更新为 `lattice-hub/pole-python`，本次未触发真实发布。
-- Monorepo 迁移提交 `c00a15a` 已推送到远端 `develop`；GitHub 直接推送明确提示绕过 PR 与
-  5 项 required checks，后续以该提交触发的 Python 3.9–3.13 Actions 结果作为远端验证证据。
+- Monorepo 迁移提交 `c00a15a` 与交付记录 `e24ce80` 已推送到远端 `develop`；GitHub 直接
+  推送明确提示绕过 PR 与 5 项 required checks，但随后 Actions run `31605443604` 的 Python
+  3.9–3.13 五项 required jobs 全部通过安装、24 项测试、`compileall` 和嵌套构建。
 
 ## 2026-08-12 TrafficContext 发布边界审查
 
