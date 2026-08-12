@@ -39,7 +39,7 @@ jobs:
             echo "兼容客户端 wheel 不得包含自动启动模块"
             exit 1
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: pole-client-python-candidate
           path: packages/pole-client-python/dist/*
