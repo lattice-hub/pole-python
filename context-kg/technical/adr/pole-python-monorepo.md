@@ -10,7 +10,7 @@ sources: 8
 
 ## 状态
 
-Implemented locally；Q1、Q2 已完成，Q3 自动增强延期，`develop` 远端交付待完成。
+Implemented；Q1、Q2 已进入 `develop`，Q3 自动增强延期。
 
 ## 背景
 

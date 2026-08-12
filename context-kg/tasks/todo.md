@@ -16,7 +16,7 @@ sources: 0
 - [x] 保持 `pole-client-python` distribution 与 `pole_client` import 不变
 - [x] 明确不引入 `sitecustomize`、自动 instrumentation 或框架 monkey patch
 - [x] 运行测试、构建、安装、契约、CodeGraph 与差异验证
-- [ ] 提交并完成 GitHub/本地仓库重命名和远端交付
+- [x] 提交并完成 GitHub/本地仓库重命名和远端交付
 
 ### 迁移约束
 
@@ -41,6 +41,8 @@ sources: 0
   解析和 `git diff --check` 通过。
 - 仓库改名改变了 PyPI Trusted Publisher 的 GitHub OIDC subject；首次发布前仍需在 PyPI 将
   repository 更新为 `lattice-hub/pole-python`，本次未触发真实发布。
+- Monorepo 迁移提交 `c00a15a` 已推送到远端 `develop`；GitHub 直接推送明确提示绕过 PR 与
+  5 项 required checks，后续以该提交触发的 Python 3.9–3.13 Actions 结果作为远端验证证据。
 
 ## 2026-08-12 TrafficContext 发布边界审查
 
