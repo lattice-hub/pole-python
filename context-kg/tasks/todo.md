@@ -8,6 +8,18 @@ sources: 0
 
 # Python Thin SDK
 
+## 2026-08-17 pole-instrument 技术设计
+
+- [x] 确定独立包与显式激活边界
+- [x] 定义 Adapter、传播与 Sidecar 生命周期契约
+- [x] 定义 fail-open、pre-fork、诊断、配置和安全策略
+- [x] 记录分层验证与框架支持准入门禁
+
+### Review
+
+- 技术提案见 [[pole-instrument]]；当前支持矩阵为空，不引入生产增强、框架 patch、隐式启动文件或
+  Thin SDK 公共行为变化。
+
 ## 2026-08-12 pole-python 轻量 Monorepo 迁移
 
 - [x] 核对工作区、远端、发布流水线和硬编码路径
