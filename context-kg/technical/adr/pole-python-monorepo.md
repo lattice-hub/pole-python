@@ -10,7 +10,8 @@ sources: 8
 
 ## 状态
 
-Implemented；Q1、Q2 已进入 `develop`，Q3 自动增强延期。
+Implemented；Q1、Q2 已进入 `develop`，Q3 自动增强尚未实现，其 Proposed
+边界见 [[pole-instrument-design]]。
 
 ## 背景
 
@@ -40,8 +41,9 @@ gRPC over UDS 维护 Sidecar Control Session。未来自动增强还会引入进
 
 ## 延期事项
 
-自动 instrumentation 需要单独决策其 distribution、启动器、框架 Adapter、fail-open、
-pre-fork 生命周期和诊断接口。在该决策完成前，核心客户端保持显式导入和显式调用。
+自动 instrumentation 的 distribution、启动器、框架 Adapter、fail-open、
+pre-fork 生命周期和诊断接口已进入 [[pole-instrument-design]] 提案。
+在该提案实现并发布前，核心客户端仍保持显式导入和显式调用。
 
 ## 证据
 
@@ -56,4 +58,5 @@ pre-fork 生命周期和诊断接口。在该决策完成前，核心客户端�
 
 ## 相关页面
 
+- [[pole-instrument-design]]
 - [[todo]]

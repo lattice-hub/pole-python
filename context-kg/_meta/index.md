@@ -11,6 +11,7 @@ sources: 0
 ## Technical
 
 - [[pole-python-monorepo]] — 轻量 Monorepo 与兼容发行边界 | architecture, python, monorepo, packaging
+- [[pole-instrument-design]] — 自动增强 Proposed 技术设计 | architecture, python, instrumentation, sidecar
 
 ## Tasks
 

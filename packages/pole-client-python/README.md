@@ -7,7 +7,8 @@ Sidecar 下发的 listener 地址、登记本地服务，并为业务协议注�
 
 本包由 [`pole-python`](https://github.com/lattice-hub/pole-python) monorepo 维护；PyPI
 distribution 名称、`pole_client` import 路径与公共接口保持兼容。安装本包不会启用
-`sitecustomize` 或任何自动 instrumentation。
+`sitecustomize` 或任何自动 instrumentation；未来的独立 `pole-instrument` 提案也不改变
+这一兼容边界。
 
 ## 契约来源
 

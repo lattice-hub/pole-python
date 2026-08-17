@@ -2,6 +2,8 @@
 
 `pole-python` 是 Pole Python 运行时的轻量 monorepo。当前只包含保持兼容的 Python Thin SDK
 发行包；自动 instrumentation、`sitecustomize`、启动器和框架 monkey patch 尚未实现。
+自动增强的 Proposed 边界见
+[`pole-instrument` 技术设计](context-kg/technical/adr/pole-instrument-design.md)。
 
 ## Packages
 
