@@ -2,7 +2,7 @@
 title: pole-python Context-KG
 tags: [meta, index]
 links: []
-updated: 2026-08-12
+updated: 2026-08-18
 sources: 0
 ---
 
@@ -11,6 +11,7 @@ sources: 0
 ## Technical
 
 - [[pole-python-monorepo]] — 轻量 Monorepo 与兼容发行边界 | architecture, python, monorepo, packaging
+- [[pole-instrument]] — Proposed instrumentation launcher contract | architecture, python, instrumentation
 
 ## Tasks
 

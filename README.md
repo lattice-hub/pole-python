@@ -25,3 +25,7 @@ python -m build \
 
 仓库结构为后续独立 Python runtime modules 预留位置，但不会为了目录对称创建空包。
 安装 `pole-client-python` 不会自动导入 `sitecustomize`，也不会修改用户进程中的框架行为。
+
+后续 `pole-instrument` 启动器的 Proposed 设计见
+[`context-kg/technical/adr/pole-instrument.md`](context-kg/technical/adr/pole-instrument.md)；当前没有
+已获批准的框架适配器或生产实现。
