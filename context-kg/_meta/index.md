@@ -11,6 +11,7 @@ sources: 0
 ## Technical
 
 - [[pole-python-monorepo]] — 轻量 Monorepo 与兼容发行边界 | architecture, python, monorepo, packaging
+- [[pole-instrument]] — 自动增强产品边界、生命周期与 HTTPX v1 设计 | architecture, python, instrumentation
 
 ## Tasks
 

@@ -57,3 +57,4 @@ pre-fork 生命周期和诊断接口。在该决策完成前，核心客户端�
 ## 相关页面
 
 - [[todo]]
+- [[pole-instrument]]
