@@ -8,6 +8,14 @@ sources: 0
 
 # Context-KG 变更日志
 
+## [2026-08-20] design | pole-instrument Technical Design
+
+- 新增页面：`pole-instrument-technical-design`，并更新 `index`、`log`。
+- 决策摘要：采用独立 distribution 与显式 CLI/API 激活；首期支持 HTTPX sync/async 和
+  gRPC sync unary，Dubbo/Thrift 延期；复用 Thin SDK 公开边界并定义断流、代际、fork、诊断、
+  安全、回滚和测试契约。
+- 范围边界：本次只交付技术设计，不添加运行时代码、启动文件、import hook 或框架 monkey patch。
+
 ## [2026-08-12] delivery | pole-python 迁移进入 develop
 
 - 更新页面：`pole-python-monorepo`、`todo`、`log`。
